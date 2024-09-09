@@ -16,7 +16,7 @@ templates: { }
 jobs: { }
 gemContainer:
   languageVersion: ''
-  gemLibsVersion: '1.7.5.dev5'
+  gemLibsVersion: '1.3.4.0'
   gems:
     gems/WhileIterator:
       name: WhileIterator
