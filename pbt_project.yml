@@ -32,9 +32,11 @@ gemContainer:
 functions:
   author: null
   createdAt: '2023-08-10 17:42:47'
-  udfs: { }
-  udafs: { }
-  expressions: { }
+  udfs: {}
+  udafs: {}
+  expressions: {}
+  airflowFunctions: {}
+  businessRules: {}
 subgraphs: { }
 sqlModels: { }
 sqlMacros: { }
@@ -44,4 +46,6 @@ sqlUnreferencedSources: { }
 sqlPipeline: null
 dependencies: '[]'
 projectDependencies: { }
+flags:
+  shouldAddDefaultDependenciesIfAbsent: true
 pipelineConfigurations: { }
