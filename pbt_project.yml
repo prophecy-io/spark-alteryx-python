@@ -1,6 +1,6 @@
 name: Prophecy-Alteryx-Python-Gems
 description: ''
-version: 0.0.1.dev4
+version: 0.0.1.dev5
 author: support@prophecy.io
 language: python
 buildSystem: ''
@@ -48,23 +48,7 @@ sqlSources: {}
 sqlUnreferencedSources: {}
 sqlPipeline: null
 dependencies: '[]'
-projectDependencies:
-  '7':
-    projectUID: 7
-    projectName: ProphecySparkBasicsPython
-    repositoryPath: gitUri=http://gitserver:3000/8OTMRr6V_team_5/8OTMRr6V_project_7.git&subPath=
-    version: 0.2.28.dev2
-    isDefault: true
-    author: null
-    createdAt: '2024-09-09 14:07:29'
-  '8':
-    projectUID: 8
-    projectName: ProphecyWarehousePython
-    repositoryPath: gitUri=http://gitserver:3000/8OTMRr6V_team_5/8OTMRr6V_project_8.git&subPath=
-    version: 0.0.8
-    isDefault: true
-    author: null
-    createdAt: '2024-09-09 14:07:29'
+projectDependencies: { }
 flags:
   shouldAddDefaultDependenciesIfAbsent: true
 pipelineConfigurations: {}
