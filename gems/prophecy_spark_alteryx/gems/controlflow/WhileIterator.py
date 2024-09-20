@@ -18,7 +18,7 @@ import builtins, dataclasses
 class WhileIterator(MetaComponentSpec):
     name: str = "WhileIterator"
     category: str = "CustomSubgraph"
-    gemDescription: str = "This Subgraph will process the dataframe, looping the results back through the workflow until the input dataframe becomes empty or max iterations are reached."
+    gemDescription: str = "This subgraph will process the dataframe, looping the results back through the workflow until the input dataframe becomes empty or max iterations are reached."
 
     def optimizeCode(self) -> bool:
         # Return whether code optimization is enabled for this component
