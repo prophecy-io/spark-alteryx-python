@@ -29,9 +29,14 @@ class WhileIterator(MetaComponentSpec):
         # properties for the component with default values
         maxIteration: SInt = SInt("5")
         iterationNumberVariableName: str = "iteration_number"
+        populateIterationNumber: bool = True
 
     def dialog(self) -> Dialog:
         # Define the UI dialog structure for the component
+        elementWithIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(TextBox("Config variable Name for iteration number").bindPlaceholder("iteration_number").bindProperty("iterationNumberVariableName"))
+        elementWithoutIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(TextBox("Config variable Name for iteration number").disabled().bindPlaceholder("iteration_number").bindProperty("iterationNumberVariableName"))
+        propertiesSection = Condition().ifEqual(PropExpr("component.properties.populateIterationNumber"), BooleanExpr(True)).then(elementWithIterationNumber).otherwise(elementWithoutIterationNumber)
+
         return (Dialog("WhileIterator", footer=SubgraphDialogFooter())
             .addElement(
                 ColumnsLayout(gap="1rem", height="100%")
@@ -40,18 +45,7 @@ class WhileIterator(MetaComponentSpec):
                     Tabs()
                     .addTabPane(
                         TabPane("Settings", "Settings")
-                        .addElement(
-                            StackLayout(height="100%", gap="2rem")
-                            .addElement(
-                                ExpressionBox("Max Iterations")
-                                .bindPlaceholder("1000")
-                                .bindProperty("maxIteration")
-                                .withFrontEndLanguage()
-                            )
-                            .addElement(
-                                TextBox("Config variable Name for iteration number").bindPlaceholder("iteration_number").bindProperty("iterationNumberVariableName")
-                            )
-                        )
+                        .addElement(propertiesSection)
                     )
                     .addTabPane(
                         TabPane("Configuration", "Configuration")
@@ -125,10 +119,13 @@ class WhileIterator(MetaComponentSpec):
             variableName = self.props.iterationNumberVariableName
 
             def updated_config(config, iteration_number):
-                import copy
-                newConfig: SubstituteDisabled = copy.deepcopy(config)
-                newConfig.update_all(variableName, iteration_number)
-                return newConfig
+                if self.props.populateIterationNumber:
+                    import copy
+                    newConfig: SubstituteDisabled = copy.deepcopy(config)
+                    newConfig.update_all(variableName, iteration_number)
+                    return newConfig
+                else:
+                    return
 
             def is_schema_subset(df1: DataFrame, df2: DataFrame) -> bool:
                 normalized_schema1:SubstituteDisabled = StructType([StructField(field.name.lower(), field.dataType, field.nullable) for field in df1.schema])
