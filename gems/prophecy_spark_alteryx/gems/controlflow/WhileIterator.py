@@ -98,7 +98,7 @@ class WhileIterator(MetaComponentSpec):
                     SeverityLevelEnum.Error
                 )
             )
-        if component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0:
+        if component.properties.populateIterationNumber == True and (component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0):
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
@@ -133,12 +133,11 @@ class WhileIterator(MetaComponentSpec):
             updateConfigVariable = self.props.populateIterationNumber
 
             def updated_config(config, iteration_number):
-                if updateConfigVariable == False:
-                    return
                 import copy
                 newConfig: SubstituteDisabled = copy.deepcopy(config)
                 newConfig.update_all(variableName, iteration_number)
                 return newConfig
+
 
             def is_schema_subset(df1: DataFrame, df2: DataFrame) -> bool:
                 normalized_schema1:SubstituteDisabled = StructType([StructField(field.name.lower(), field.dataType, field.nullable) for field in df1.schema])
@@ -150,17 +149,22 @@ class WhileIterator(MetaComponentSpec):
                 import copy
                 remaining_iterations = max_iterations - 1
                 iteration_number = max_iteration_limit - max_iterations + 1
+                updatedConfig = None
+                if updateConfigVariable == False:
+                    updatedConfig = self.config
+                else:
+                    updatedConfig = updated_config(self.config, iteration_number)
 
                 if max_iterations == 0:
                     empty_rest_dfs1: SubstituteDisabled = [df.limit(0) for df in rest_dfs]
-                    output1: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df.limit(0), *empty_rest_dfs1)
+                    output1: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df.limit(0), *empty_rest_dfs1)
                     return tuple([input_df] + list(output1[1:]))
                 if input_df.rdd.isEmpty():
                     empty_rest_dfs2: SubstituteDisabled = [df.limit(0) for df in rest_dfs]
-                    output2: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df.limit(0), *empty_rest_dfs2)
+                    output2: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df.limit(0), *empty_rest_dfs2)
                     return tuple([input_df] + list(output2[1:]))
                 
-                output: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df, *rest_dfs)
+                output: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df, *rest_dfs)
                 recursive_output: SubstituteDisabled = recursive_eval(output[0], rest_dfs, remaining_iterations)
 
                 # Find remaining rows
