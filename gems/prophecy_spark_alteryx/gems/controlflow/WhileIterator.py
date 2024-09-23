@@ -29,9 +29,17 @@ class WhileIterator(MetaComponentSpec):
         # properties for the component with default values
         maxIteration: SInt = SInt("5")
         iterationNumberVariableName: str = "iteration_number"
+        populateIterationNumber: Optional[bool] = True
+        schema: Optional[StructType] = StructType([])
+        configVariableNames: Optional[List[str]] = field(default_factory=list)
 
     def dialog(self) -> Dialog:
         # Define the UI dialog structure for the component
+        disabledConfigSelectBox = SchemaColumnsDropdown("Select config variable name to populate iteration number").withMultipleSelection().withDisabled().bindSchema("schema").bindProperty("configVariableNames")
+        enabledConfigSelectBox = SchemaColumnsDropdown("Select config variable name to populate iteration number").withMultipleSelection().bindSchema("schema").bindProperty("configVariableNames")
+        elementWithIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(enabledConfigSelectBox)
+        elementWithoutIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(disabledConfigSelectBox)
+        propertiesSection = Condition().ifEqual(PropExpr("component.properties.populateIterationNumber"), BooleanExpr(False)).then(elementWithoutIterationNumber).otherwise(elementWithIterationNumber)
         return (Dialog("WhileIterator", footer=SubgraphDialogFooter())
             .addElement(
                 ColumnsLayout(gap="1rem", height="100%")
@@ -40,18 +48,7 @@ class WhileIterator(MetaComponentSpec):
                     Tabs()
                     .addTabPane(
                         TabPane("Settings", "Settings")
-                        .addElement(
-                            StackLayout(height="100%", gap="2rem")
-                            .addElement(
-                                ExpressionBox("Max Iterations")
-                                .bindPlaceholder("1000")
-                                .bindProperty("maxIteration")
-                                .withFrontEndLanguage()
-                            )
-                            .addElement(
-                                TextBox("Config variable Name for iteration number").bindPlaceholder("iteration_number").bindProperty("iterationNumberVariableName")
-                            )
-                        )
+                        .addElement(propertiesSection)
                     )
                     .addTabPane(
                         TabPane("Configuration", "Configuration")
@@ -101,14 +98,24 @@ class WhileIterator(MetaComponentSpec):
                     SeverityLevelEnum.Error
                 )
             )
-        if (len(component.properties.iterationNumberVariableName) == 0):
+        if component.properties.populateIterationNumber == True and (component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0):
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
     def onChange(self, context: WorkflowContext, oldState: MetaComponent[WhileIteratorProperties], newState: MetaComponent[WhileIteratorProperties]) -> MetaComponent[
     WhileIteratorProperties]:
         # Handle changes in the component's state and return the new state
-        return newState
+        populateConfigFlag = True
+        if newState.properties.populateIterationNumber == False:
+            populateConfigFlag = False
+        availableConfigFieldNames = context.config_context.get_field_names()
+        lastSelectedVariable = None
+        if len(newState.properties.configVariableNames) > 0:
+            lastSelectedVariable = newState.properties.configVariableNames[-1]
+
+        newProps = newState.properties
+        configAsSchema = [StructField(item, StringType(), True) for item in availableConfigFieldNames]
+        return newState.bindProperties(dataclasses.replace(newProps, schema=StructType(configAsSchema), configVariableNames=[lastSelectedVariable], iterationNumberVariableName=lastSelectedVariable, populateIterationNumber=populateConfigFlag))
 
 
     class WhileIteratorCode(MetaComponentCode):
@@ -123,12 +130,14 @@ class WhileIterator(MetaComponentSpec):
             # This method contains logic used to generate the spark code from the given inputs.
             max_iteration_limit = self.props.maxIteration
             variableName = self.props.iterationNumberVariableName
+            updateConfigVariable = self.props.populateIterationNumber
 
             def updated_config(config, iteration_number):
                 import copy
                 newConfig: SubstituteDisabled = copy.deepcopy(config)
                 newConfig.update_all(variableName, iteration_number)
                 return newConfig
+
 
             def is_schema_subset(df1: DataFrame, df2: DataFrame) -> bool:
                 normalized_schema1:SubstituteDisabled = StructType([StructField(field.name.lower(), field.dataType, field.nullable) for field in df1.schema])
@@ -140,17 +149,22 @@ class WhileIterator(MetaComponentSpec):
                 import copy
                 remaining_iterations = max_iterations - 1
                 iteration_number = max_iteration_limit - max_iterations + 1
+                updatedConfig = None
+                if updateConfigVariable == False:
+                    updatedConfig = self.config
+                else:
+                    updatedConfig = updated_config(self.config, iteration_number)
 
                 if max_iterations == 0:
                     empty_rest_dfs1: SubstituteDisabled = [df.limit(0) for df in rest_dfs]
-                    output1: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df.limit(0), *empty_rest_dfs1)
+                    output1: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df.limit(0), *empty_rest_dfs1)
                     return tuple([input_df] + list(output1[1:]))
                 if input_df.rdd.isEmpty():
                     empty_rest_dfs2: SubstituteDisabled = [df.limit(0) for df in rest_dfs]
-                    output2: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df.limit(0), *empty_rest_dfs2)
+                    output2: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df.limit(0), *empty_rest_dfs2)
                     return tuple([input_df] + list(output2[1:]))
                 
-                output: SubstituteDisabled = self.__run__(spark, updated_config(self.config, iteration_number), input_df, *rest_dfs)
+                output: SubstituteDisabled = self.__run__(spark, updatedConfig, input_df, *rest_dfs)
                 recursive_output: SubstituteDisabled = recursive_eval(output[0], rest_dfs, remaining_iterations)
 
                 # Find remaining rows
