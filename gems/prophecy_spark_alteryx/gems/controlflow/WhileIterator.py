@@ -29,9 +29,9 @@ class WhileIterator(MetaComponentSpec):
         # properties for the component with default values
         maxIteration: SInt = SInt("5")
         iterationNumberVariableName: str = "iteration_number"
-        populateIterationNumber: bool = True
+        populateIterationNumber: Optional[bool] = True
         schema: Optional[StructType] = StructType([])
-        configVariableNames: List[str] = field(default_factory=list)
+        configVariableNames: Optional[List[str]] = field(default_factory=list)
 
     def dialog(self) -> Dialog:
         # Define the UI dialog structure for the component
@@ -39,7 +39,7 @@ class WhileIterator(MetaComponentSpec):
         enabledConfigSelectBox = SchemaColumnsDropdown("Select config variable name to populate iteration number").withMultipleSelection().bindSchema("schema").bindProperty("configVariableNames")
         elementWithIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(enabledConfigSelectBox)
         elementWithoutIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(disabledConfigSelectBox)
-        propertiesSection = Condition().ifEqual(PropExpr("component.properties.populateIterationNumber"), BooleanExpr(True)).then(elementWithIterationNumber).otherwise(elementWithoutIterationNumber)
+        propertiesSection = Condition().ifEqual(PropExpr("component.properties.populateIterationNumber"), BooleanExpr(False)).then(elementWithoutIterationNumber).otherwise(elementWithIterationNumber)
         return (Dialog("WhileIterator", footer=SubgraphDialogFooter())
             .addElement(
                 ColumnsLayout(gap="1rem", height="100%")
@@ -98,21 +98,24 @@ class WhileIterator(MetaComponentSpec):
                     SeverityLevelEnum.Error
                 )
             )
-        if (len(component.properties.iterationNumberVariableName) == 0):
+        if component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0:
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
     def onChange(self, context: WorkflowContext, oldState: MetaComponent[WhileIteratorProperties], newState: MetaComponent[WhileIteratorProperties]) -> MetaComponent[
     WhileIteratorProperties]:
         # Handle changes in the component's state and return the new state
+        populateConfigFlag = True
+        if newState.properties.populateIterationNumber == False:
+            populateConfigFlag = False
         availableConfigFieldNames = context.config_context.get_field_names()
-        lastSelectedVariable = ""
+        lastSelectedVariable = None
         if len(newState.properties.configVariableNames) > 0:
             lastSelectedVariable = newState.properties.configVariableNames[-1]
 
         newProps = newState.properties
         configAsSchema = [StructField(item, StringType(), True) for item in availableConfigFieldNames]
-        return newState.bindProperties(dataclasses.replace(newProps, schema=StructType(configAsSchema), configVariableNames=[lastSelectedVariable], iterationNumberVariableName=lastSelectedVariable))
+        return newState.bindProperties(dataclasses.replace(newProps, schema=StructType(configAsSchema), configVariableNames=[lastSelectedVariable], iterationNumberVariableName=lastSelectedVariable, populateIterationNumber=populateConfigFlag))
 
 
     class WhileIteratorCode(MetaComponentCode):
@@ -130,13 +133,12 @@ class WhileIterator(MetaComponentSpec):
             updateConfigVariable = self.props.populateIterationNumber
 
             def updated_config(config, iteration_number):
-                if updateConfigVariable:
-                    import copy
-                    newConfig: SubstituteDisabled = copy.deepcopy(config)
-                    newConfig.update_all(variableName, iteration_number)
-                    return newConfig
-                else:
-                    return config
+                if updateConfigVariable == False:
+                    return
+                import copy
+                newConfig: SubstituteDisabled = copy.deepcopy(config)
+                newConfig.update_all(variableName, iteration_number)
+                return newConfig
 
             def is_schema_subset(df1: DataFrame, df2: DataFrame) -> bool:
                 normalized_schema1:SubstituteDisabled = StructType([StructField(field.name.lower(), field.dataType, field.nullable) for field in df1.schema])
