@@ -28,7 +28,7 @@ class WhileIterator(MetaComponentSpec):
     class WhileIteratorProperties(MetaComponentProperties):
         # properties for the component with default values
         maxIteration: SInt = SInt("5")
-        iterationNumberVariableName: str = "iteration_number"
+        iterationNumberVariableName: Optional[str] = "iteration_number"
         populateIterationNumber: Optional[bool] = True
         schema: Optional[StructType] = StructType([])
         configVariableNames: Optional[List[str]] = field(default_factory=list)
@@ -100,6 +100,10 @@ class WhileIterator(MetaComponentSpec):
             )
         if component.properties.populateIterationNumber == True and (component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0):
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
+        if component.properties.populateIterationNumber == True and component.properties.schema is not None:
+            allConfigVars = [x.name for x in component.properties.schema]
+            if component.properties.iterationNumberVariableName not in allConfigVars:
+                diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
     def onChange(self, context: WorkflowContext, oldState: MetaComponent[WhileIteratorProperties], newState: MetaComponent[WhileIteratorProperties]) -> MetaComponent[
@@ -109,7 +113,7 @@ class WhileIterator(MetaComponentSpec):
         if newState.properties.populateIterationNumber == False:
             populateConfigFlag = False
         availableConfigFieldNames = context.config_context.get_field_names()
-        lastSelectedVariable = None
+        lastSelectedVariable = ""
         if len(newState.properties.configVariableNames) > 0:
             lastSelectedVariable = newState.properties.configVariableNames[-1]
 
