@@ -100,10 +100,6 @@ class WhileIterator(MetaComponentSpec):
             )
         if component.properties.populateIterationNumber == True and (component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0):
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
-        if component.properties.populateIterationNumber == True and component.properties.schema is not None:
-            allConfigVars = [x.name for x in component.properties.schema]
-            if component.properties.iterationNumberVariableName not in allConfigVars:
-                diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
     def onChange(self, context: WorkflowContext, oldState: MetaComponent[WhileIteratorProperties], newState: MetaComponent[WhileIteratorProperties]) -> MetaComponent[
@@ -184,5 +180,4 @@ class WhileIterator(MetaComponentSpec):
 
                 return tuple([remaining_df] + output_dataframes)
             ans:SubstituteDisabled = recursive_eval(in0, list(inDFs), self.props.maxIteration)
-            assert is_schema_subset(in0, ans[0]), "Schema of in0 must be a subset of out0 for WhileIterator"
             return (ans[0], ans[1], ans[2:])
