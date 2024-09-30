@@ -30,13 +30,12 @@ class WhileIterator(MetaComponentSpec):
         maxIteration: SInt = SInt("5")
         iterationNumberVariableName: Optional[str] = "iteration_number"
         populateIterationNumber: Optional[bool] = True
-        schema: Optional[StructType] = StructType([])
         configVariableNames: Optional[List[str]] = field(default_factory=list)
 
     def dialog(self) -> Dialog:
         # Define the UI dialog structure for the component
-        disabledConfigSelectBox = SchemaColumnsDropdown("Select config variable name to populate iteration number").withMultipleSelection().withDisabled().bindSchema("schema").bindProperty("configVariableNames")
-        enabledConfigSelectBox = SchemaColumnsDropdown("Select config variable name to populate iteration number").withMultipleSelection().bindSchema("schema").bindProperty("configVariableNames")
+        disabledConfigSelectBox = SelectBox("Select config variable name to populate iteration number").bindOptionProperty("${component.properties.configVariableNames}").withDisabled().bindProperty("iterationNumberVariableName")
+        enabledConfigSelectBox = SelectBox("Select config variable name to populate iteration number").bindOptionProperty("${component.properties.configVariableNames}").bindProperty("iterationNumberVariableName")
         elementWithIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(enabledConfigSelectBox)
         elementWithoutIterationNumber = StackLayout(height="100%", gap="2rem").addElement(ExpressionBox("Max Iterations").bindPlaceholder("1000").bindProperty("maxIteration").withFrontEndLanguage()).addElement(Checkbox("Populate iteration number in config variable", "populateIterationNumber")).addElement(disabledConfigSelectBox)
         propertiesSection = Condition().ifEqual(PropExpr("component.properties.populateIterationNumber"), BooleanExpr(False)).then(elementWithoutIterationNumber).otherwise(elementWithIterationNumber)
@@ -100,26 +99,13 @@ class WhileIterator(MetaComponentSpec):
             )
         if component.properties.populateIterationNumber == True and (component.properties.iterationNumberVariableName is None or len(component.properties.iterationNumberVariableName) == 0):
             diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
-        if component.properties.populateIterationNumber == True and component.properties.schema is not None:
-            allConfigVars = [x.name for x in component.properties.schema]
-            if component.properties.iterationNumberVariableName not in allConfigVars:
-                diagnostics.append(Diagnostic("properties.iterationNumberVariableName", "Please provide a valid variable name for iteration number", SeverityLevelEnum.Error))
         return diagnostics
 
     def onChange(self, context: WorkflowContext, oldState: MetaComponent[WhileIteratorProperties], newState: MetaComponent[WhileIteratorProperties]) -> MetaComponent[
     WhileIteratorProperties]:
-        # Handle changes in the component's state and return the new state
-        populateConfigFlag = True
-        if newState.properties.populateIterationNumber == False:
-            populateConfigFlag = False
         availableConfigFieldNames = context.config_context.get_field_names()
-        lastSelectedVariable = ""
-        if len(newState.properties.configVariableNames) > 0:
-            lastSelectedVariable = newState.properties.configVariableNames[-1]
-
         newProps = newState.properties
-        configAsSchema = [StructField(item, StringType(), True) for item in availableConfigFieldNames]
-        return newState.bindProperties(dataclasses.replace(newProps, schema=StructType(configAsSchema), configVariableNames=[lastSelectedVariable], iterationNumberVariableName=lastSelectedVariable, populateIterationNumber=populateConfigFlag))
+        return newState.bindProperties(dataclasses.replace(newProps, configVariableNames=availableConfigFieldNames))
 
 
     class WhileIteratorCode(MetaComponentCode):
