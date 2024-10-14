@@ -80,7 +80,7 @@ class DynamicReplace(ComponentSpec):
 
         def apply(self, spark: SparkSession, in0: DataFrame, in1: DataFrame) -> DataFrame:
             from prophecy.utils import ProphecyDataFrame
-            in1WithId = in1.withColumn("__rowId", monotonically_increasing_id().cast("integer")).withColumn(self.props.booleanExpressionFieldColumn, call_spark_fcn("convertAlteryxToSparkSql", col(self.props.booleanExpressionFieldColumn)))
+            in1WithId = in1.withColumn("__rowId", monotonically_increasing_id().cast("integer"))
 
             if (self.props.valuesAreExpressions):
                 return ProphecyDataFrame(in0, spark).dynamicReplaceExpr(in1WithId._jdf, "__rowId", self.props.fieldNameFieldColumn, self.props.booleanExpressionFieldColumn, self.props.outputValueFieldColumn, spark)
