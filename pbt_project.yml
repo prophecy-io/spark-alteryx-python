@@ -1,6 +1,6 @@
 name: Prophecy-Alteryx-Python-Gems
 description: ''
-version: 0.0.2.dev7
+version: 0.0.2.dev8
 author: support@prophecy.io
 language: python
 buildSystem: ''
@@ -29,6 +29,24 @@ gemContainer:
       gemType: MetaComponentGem
       dependencies: []
       createdAt: '2024-01-16 00:03:59'
+    gems/DynamicReplace:
+      name: DynamicReplace
+      category: Transform
+      subCategory: ''
+      description: null
+      author: support@prophecy.io
+      mode: batch
+      files: [ ]
+      createdAt: '2024-10-23 12:46:28'
+    gems/FuzzyMatch:
+      name: FuzzyMatch
+      category: Transform
+      subCategory: ''
+      description: null
+      author: support@prophecy.io
+      mode: batch
+      files: [ ]
+      createdAt: '2024-10-23 12:46:28'
   dependencies: null
 functions:
   author: null

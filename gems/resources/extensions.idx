@@ -1,2 +1,3 @@
 prophecy_spark_alteryx.gems.controlflow.WhileIterator.WhileIterator
 prophecy_spark_alteryx.gems.transform.DynamicReplace.DynamicReplace
+prophecy_spark_alteryx.gems.transform.FuzzyMatch.FuzzyMatch
