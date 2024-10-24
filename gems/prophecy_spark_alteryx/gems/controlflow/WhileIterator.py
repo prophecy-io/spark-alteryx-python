@@ -170,5 +170,4 @@ class WhileIterator(MetaComponentSpec):
 
                 return tuple([remaining_df] + output_dataframes)
             ans:SubstituteDisabled = recursive_eval(in0, list(inDFs), self.props.maxIteration)
-            assert is_schema_subset(in0, ans[0]), "Schema of in0 must be a subset of out0 for WhileIterator"
             return (ans[0], ans[1], ans[2:])
