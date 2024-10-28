@@ -1,6 +1,6 @@
 name: Prophecy-Alteryx-Python-Gems
 description: ''
-version: 0.0.2.dev11
+version: 0.0.2
 author: support@prophecy.io
 language: python
 buildSystem: ''
